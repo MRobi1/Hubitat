@@ -3,7 +3,7 @@ import groovy.json.JsonSlurper
  *  Emby Communicator
  *
  *  Copyright 2020 Mike Robichaud
- *	Credit To: Jake Tebbett for his Plex Communicator code used as a base, Christian Hjelseth, iBeech & Ph4r as snippets of code taken and amended from their apps
+ *	Credit To: Jake Tebbett for his Plex Communicator code used as a base, Keo, Christian Hjelseth, iBeech & Ph4r as snippets of code taken and amended from their apps
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -64,26 +64,24 @@ def initialize() {
     }else{
     	getChildDevices().each { deleteChildDevice("${it.deviceNetworkId}") }
     }
-    // Just in case plexPoller has gasped it's last breath (in case it's used)
-    if(settings?.stPoller){runEvery3Hours(plexPoller)}
+    // Just in case embyPoller has gasped it's last breath (in case it's used)
+    if(settings?.stPoller){runEvery3Hours(embyPoller)}
 }
 
 preferences {
 	page name: "mainMenu"
     page name: "noAuthPage"
     page name: "authPage"
-    page name: "authPage2"
     page name: "clientPage"
     page name: "clearClients"
     page name: "mainPage"
-    page name: "ApiSettings"
+    page name: "WebhooksSettings"
 }
 
 mappings {
-  path("/statechanged/:command") 	{ action: [GET: "plexExeHandler"] }
-  path("/p2stset") 					{ action: [GET: "p2stset"]   }
-  path("/pwhset") 					{ action: [GET: "pwhset"]   }
-  path("/pwh") 						{ action: [POST: "plexWebHookHandler"] }
+  path("/statechanged/:command") 	{ action: [GET: "embyExeHandler"] }
+  path("/ewhset") 					{ action: [GET: "ewhset"]   }
+  path("/ewh") 						{ action: [POST: "embyWebHookHandler"] }
 }
 
 
@@ -92,7 +90,7 @@ mappings {
 ************************************************************/
 
 def mainMenu() {
-	// Get ST Token
+	// Get HE Token
     try { if (!state.accessToken) {createAccessToken()} }
     catch (Exception e) {
     	log.info "Unable to create access token, OAuth has probably not been enabled in IDE: $e"
@@ -113,101 +111,53 @@ def noAuthPage() {
 def mainPage() {
 	return dynamicPage(name: "mainPage", uninstall: true, install: true) {
 		section("Main Menu") {
-        	href "clientPage", title:"Select Your Devices", description: "Select the devices you want to monitor" 
-            href "authPage", title:"Emby Account Details", description: "Update Emby Account Details"
-        	href(name: "ApiSettings", title: "Connection Methods", required: false, page: "ApiSettings", description: "Select your method for connecting to Emby")
+        	href "authPage", title:"Emby Account Details", description: "Update Emby Account Details"
+			href "clientPage", title:"Select Your Devices", description: "Select the devices you want to monitor" 
+            href(name: "WebhooksSettings", title: "Connection Methods", required: false, page: "WebhooksSettings", description: "Select your method for connecting to Emby")
     	}
         section("If you want to control lighting scenes then the 'MediaScene' SmartApp is ideal for this purpose"){}
-        section("This app is developed by jebbett, additional credit goes to Christian H (Plex2SmartThings), iBeech (Plex Home Theatre) & Ph4r (Improved Plex control)."){}
+        section("This app is developed by MRobi, additional credit goes to jebbett (PlexCommunicator), Keo (Emby to Vudu), to Christian H (Plex2SmartThings), iBeech (Plex Home Theatre) & Ph4r (Improved Plex control)."){}
     }
 }
 
-def ApiSettings() {
-    dynamicPage(name: "ApiSettings", title: "Select Your Connection Method", install: false, uninstall: false) {      
-        section("1. Plex Webhooks - Plex Pass Only (Best)") {
-        	paragraph("Plex Webhooks is the best method for connecting Plex to SmartThings, however you will need an active Plex Pass Subscription to use it")
-        	href url: "${getLocalApiServerUrl()}/${app.id}/pwhset?access_token=${state.accessToken}", style:"embedded", required:false, title:"Plex Webhooks Settings", description: ""  		
+def WebhooksSettings() {
+    dynamicPage(name: "WebhooksSettings", title: "Webhook Address", install: false, uninstall: false) {      
+         section("Webhooks - Emby service required") {
+        	paragraph("Note: You will need an active Emby Subscription to use this")
+        	href url: "${getLocalApiServerUrl()}/${app.id}/ewhset?access_token=${state.accessToken}", style:"embedded", required:false, title:"Emby Webhooks Settings", description: ""  		
         }
-        section("2. Plex2SmartThings Program") {
-        	paragraph("This involves running a program on an always on computer")
-            href url: "${getLocalApiServerUrl()}/${app.id}/p2stset?access_token=${state.accessToken}", style:"embedded", required:false, title:"Plex2SmartThings Program Settings", description: ""    		
-        }
-        section("3. SmartThings Polling *Not Recommended*") {
-        	paragraph("SmartThings will poll every 10 seconds and request the status from Plex, however this method is unreliable and puts increased load on SmartThings and your network (Don't complain to me that it stops working occasionally)")
-            input "stPoller", "bool", title: "Enable - At your own risk", defaultValue:false, submitOnChange: true
-        }
-        if(settings?.stPoller){plexPoller()}
-        
-        
-        section("NOTE: The settings for both of the above have also been sent to Live Logging, ffor easy access from a computer."){}
-        log.debug(
-        		"\n ## URL FOR USE IN PLEX WEBHOOKS ##\n${getFullLocalApiServerUrl()}/pwh?access_token=${state.accessToken}"+
-        		"\n\n ## SETTINGS TO USE IN THE EXE ##\n"+
+		section("NOTE: The settings above have also been sent to Live Logging, for easy access from a computer."){}
+        	log.debug(
+        		"\n ## URL FOR USE IN EMBY WEBHOOKS ##\n${getFullLocalApiServerUrl()}/ewh?access_token=${state.accessToken}"+
         		"<!ENTITY accessToken '${state.accessToken}'>\n"+
-				"<!ENTITY appId '${app.id}'>\n"+
-				"<!ENTITY ide '${getFullLocalApiServerUrl()}'>\n"+
-				"<!ENTITY plexStatusUrl 'http://${settings.plexServerIP}:32400/status/sessions?X-Plex-Token=${state.authenticationToken}'>\n")
-    }
+				"<!ENTITY appId '${app.id}'>\n")
+	}
 }
 
-def pwhset() {
-    def html = """<html><head><title>Plex2SmartThings Settings</title></head><body><h1>
-        ${getFullLocalApiServerUrl()}/pwh?access_token=${state.accessToken}<br />
-
+def ewhset() {
+    def html = """<html><head><title>Emby2Hubitat Settings</title></head><body><h1>
+        ${getFullLocalApiServerUrl()}/ewh?access_token=${state.accessToken}<br />
     </h1></body></html>"""
     render contentType: "text/html", data: html, status: 200
 }
 
-def p2stset() {
-    def html = """
-    <!DOCTYPE html>
-    <html><head><title>Plex Webhooks Settings</title></head><body><p>
-        &lt;!ENTITY accessToken '${state.accessToken}'><br />
-        &lt;!ENTITY appId '${app.id}'><br />
-        &lt;!ENTITY ide '${getFullLocalApiServerUrl()}'><br />
-        &lt;!ENTITY plexStatusUrl 'http://${settings.plexServerIP}:32400/status/sessions?X-Plex-Token=${state.authenticationToken}'>
-    </p></body></html>"""
-    render contentType: "text/html", data: html, status: 200
-}
-
-
 
 /***********************************************************
-** Plex Authentication
+** Emby Authentication
 ************************************************************/
 
 def authPage() {
-    return dynamicPage(name: "authPage", nextPage: authPage2, install: false) {
+    return dynamicPage(name: "authPage", nextPage: clientPage, install: false) {
         def hub = location.hubs[0]
-        section("Plex Login Details") {
-        	input "plexUserName", "text", "title": "Plex Username", multiple: false, required: true
-    		input "plexPassword", "password", "title": "Plex Password", multiple: false, required: true
-            input "plexServerIP", "text", "title": "Server IP", multiple: false, required: true
+        section("Emby Server Details") {
+            input "embyServerIP", "text", "title": "Server IP", multiple: false, required: true
+			input "embyServerPort", "text", "title": "Server Port", multiple: false, required: true, defaultValue: "8096"
+			input("embyApiKey", "text", title: "API Key", description: "Your Emby API Key", required: true)
 		}
     }
 }
 def authPage2() {
-    getAuthenticationToken()
     clientPage()
-}
-
-def getAuthenticationToken() {
-    log.debug "Getting authentication token for Plex Server " + settings.plexServerIP      
-    def paramsp = [
-    	uri: "https://plex.tv/users/sign_in.json?user%5Blogin%5D=" + settings.plexUserName + "&user%5Bpassword%5D=" + URLEncoder.encode(settings.plexPassword),
-        requestContentType: "application/json",
-        headers: [
-            'X-Plex-Client-Identifier': 'PlexCommunicator',
-			'X-Plex-Product': 'Emby Communicator',
-			'X-Plex-Version': '1.0'
-        ]
-   	]    
-	try {    
-		httpPost(paramsp) { resp ->          
-        	state.authenticationToken = resp.data.user.authentication_token;
-        	log.debug "Congratulations Token recieved: " + state.authenticationToken + " & your Plex Pass status is " + resp.data.user.subscription.status }
-	}
-	catch (Exception e) { log.warn "Hit Exception $e on $paramsp" }
 }
 
 /***********************************************************
@@ -219,7 +169,7 @@ def clientPage() {
     def devs = getClientList()
 	return dynamicPage(name: "clientPage", title: "NOTE:", nextPage: mainPage, uninstall: false, install: true) {
         section("If your device does not appear in the list"){}
-        section("Devices currently in use by plex will have a [►] icon next to them, this can be helpful when multiple devices share the same name, if a device is playing but not shown then press Save above and come back to this screen"){
+        section("Devices currently in use by Emby will have a [►] icon next to them, this can be helpful when multiple devices share the same name, if a device is playing but not shown then press Save above and come back to this screen"){
         	input "devices", "enum", title: "Select Your Devices", options: devs, multiple: true, required: false, submitOnChange: true
   		}
         if(!devices){
@@ -253,13 +203,13 @@ def getClients(){
     if(!isMap2){state.playingClients = [:]}
     // Get devices.xml clients
     getClientsXML()
-    // Request server:32400/status/sessions clients - chrome cast for example is not in devices.
-	executeRequest("/status/sessions", "GET")
+    // Request server:${settings.embyServerPort}/Sessions?DeviceId={deviceId} clients - chrome cast for example is not in devices.
+	executeRequest("/Sessions?DeviceId={deviceId}", "GET")
 }
 
 def executeRequest(Path, method) {    
 	def headers = [:] 
-	headers.put("HOST", "$settings.plexServerIP:32400")
+	headers.put("HOST", "$settings.embyServerIP:${settings.embyServerPort}")
     headers.put("X-Plex-Token", state.authenticationToken)	
 	try {    
 		def actualAction = new hubitat.device.HubAction(
@@ -337,7 +287,7 @@ def getClientsXML() {
 /***********************************************************
 ** INPUT HANDLERS
 ************************************************************/
-def plexExeHandler() {
+def embyExeHandler() {
 	def status = params.command
 	def userName = params.user
 	//def playerName = params.player
@@ -351,7 +301,7 @@ def plexExeHandler() {
 }
 
 
-def plexWebHookHandler(){
+def embyWebHookHandler(){
     
     def payloadStart = request.body.indexOf('application/json') + 17    
     def newBody = request.body.substring(payloadStart)
@@ -373,11 +323,11 @@ def plexWebHookHandler(){
     eventHandler(plexEvent)
 }
 
-def plexPoller(){
+def embyPoller(){
 	if(settings?.stPoller){
     	executeRequest("/status/sessions", "GET")
     	log.warn "Plex Poller Update"
-    	runOnce( new Date(now() + 10000L), plexPoller)
+    	runOnce( new Date(now() + 10000L), embyPoller)
     }
 }
 
