@@ -17,7 +17,7 @@
  */
 
 metadata {
-	definition (name: "Emby Communicator Device", namespace: "MRobi", author: "MRobi", importUrl: "https://raw.githubusercontent.com/MRobi1/Hubitat/master/Emby%20Communicator%20Device.groovy") {
+	definition (name: "Emby Communicator Device", namespace: "MRobi", author: "MRobi", importUrl: "https://raw.githubusercontent.com/MRobi1/Hubitat/master/EmbyCommunicatorDevice.groovy") {
 	capability "Music Player"
     command "playbackType", ["string"]
 	attribute "playbackType", "string"
