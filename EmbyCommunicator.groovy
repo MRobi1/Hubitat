@@ -25,6 +25,7 @@ definition(
     name: "Emby Communicator",
     namespace: "MRobi",
     author: "Mike Robichaud",
+    importUrl: "https://raw.githubusercontent.com/MRobi1/Hubitat/master/EmbyCommunicator.groovy",
     description: "Allow Hubitat and Emby to Communicate",
     category: "My Apps",
     iconUrl: "https://github.com/jebbett/Plex-Communicator/raw/master/icon.png",
@@ -96,9 +97,7 @@ def mainMenu() {
     	log.info "Unable to create access token, OAuth has probably not been enabled in IDE: $e"
         return noAuthPage()
     }
-
-	if (state?.authenticationToken) { return mainPage() }
-    else { return authPage() }
+	return mainPage()
 }
 
 def noAuthPage() {
@@ -147,7 +146,7 @@ def ewhset() {
 ************************************************************/
 
 def authPage() {
-    return dynamicPage(name: "authPage", nextPage: clientPage, install: false) {
+    return dynamicPage(name: "authPage", install: true) {
         def hub = location.hubs[0]
         section("Emby Server Details") {
             input "embyServerIP", "text", "title": "Server IP", multiple: false, required: true
@@ -164,10 +163,11 @@ def authPage2() {
 ** CLIENTS
 ************************************************************/
 
+
 def clientPage() {
     getClients()
     def devs = getClientList()
-	return dynamicPage(name: "clientPage", title: "NOTE:", nextPage: mainPage, uninstall: false, install: true) {
+	return dynamicPage(name: "clientPage", title: "SELECT CLIENTS", uninstall: false, install: true) {
         section("If your device does not appear in the list"){}
         section("Devices currently in use by Emby will have a [►] icon next to them, this can be helpful when multiple devices share the same name, if a device is playing but not shown then press Save above and come back to this screen"){
         	input "devices", "enum", title: "Select Your Devices", options: devs, multiple: true, required: false, submitOnChange: true
@@ -201,16 +201,16 @@ def getClients(){
     if(!isMap){state.embyClients = [:]}
     def isMap2 = state.playingClients instanceof Map
     if(!isMap2){state.playingClients = [:]}
-    // Get devices.xml clients
+    // Get devices.json clients
     getClientsXML()
     // Request server:${settings.embyServerPort}/Sessions?DeviceId={deviceId} clients - chrome cast for example is not in devices.
-	executeRequest("/Sessions?DeviceId={deviceId}", "GET")
+	executeRequest("http://${settings.embyServerIP}:${settings.embyServerPort}/emby/Devices?&api_key=${settings.embyApiKey}", "GET")
 }
 
 def executeRequest(Path, method) {    
 	def headers = [:] 
 	headers.put("HOST", "$settings.embyServerIP:${settings.embyServerPort}")
-    headers.put("X-Plex-Token", state.authenticationToken)	
+    headers.put("X-Emby-Token", state.authenticationToken)	
 	try {    
 		def actualAction = new hubitat.device.HubAction(
 		    method: method,
@@ -225,7 +225,7 @@ def response(evt) {
 	// Reponse to hub from now playing request    
     def msg = parseLanMessage(evt.description);
     def stillPlaying = []
-    if(msg && msg.body && msg.body.startsWith("<?xml")){
+    if(msg && msg.body && msg.body.startsWith("<?json")){
     	log.debug "Parsing status/sessions"
     	def whatToCallMe = ""
     	def playingDevices = [:]
@@ -236,17 +236,17 @@ def response(evt) {
             playingDevices << [ (thing.Player.@machineIdentifier.text()): [name: "${whatToCallMe}", id: "${thing.Player.@machineIdentifier.text()}"]]
             
             if(settings?.stPoller){
-    			def plexEvent = [:] << [ id: "${thing.Player.@machineIdentifier.text()}", type: "${thing.@type.text()}", status: "${thing.Player.@state.text()}", user: "${thing.User.@title.text()}" ]
+    			def embyEvent = [:] << [ id: "${thing.Player.@machineIdentifier.text()}", type: "${thing.@type.text()}", status: "${thing.Player.@state.text()}", user: "${thing.User.@title.text()}" ]
                 stillPlaying << "${thing.Player.@machineIdentifier.text()}"
-        		eventHandler(plexEvent)
+        		eventHandler(embyEvent)
             }
         }
         if(settings?.stPoller){
         	//stop anything that's no long visible in the playing list but was playing before
         	state.playingClients.each { id, data ->
             	if(!stillPlaying.contains("$id")){
-                	def plexEvent2 = [:] << [ id: "${id}", type: "--", status: "stopped", user: "--" ]
-                    eventHandler(plexEvent2)
+                	def embyEvent2 = [:] << [ id: "${id}", type: "--", status: "stopped", user: "--" ]
+                    eventHandler(embyEvent2)
                 }
             }
         }
@@ -258,30 +258,28 @@ def response(evt) {
 
 def getClientsXML() {
     //getAuthenticationToken()
-    log.warn state.authenticationToken
-    def xmlDevices = [:]
+    def jsonDevices = [:]
     // Get from Devices List
     def paramsg = [
-		uri: "https://plex.tv/devices.xml",
-		contentType: 'application/xml',
-		headers: [ 'X-Plex-Token': state.authenticationToken ]
+		uri: "http://${settings.embyServerIP}:${settings.embyServerPort}/emby/Devices?&api_key=${settings.embyApiKey}",
+        contentType: 'application/json',
 	]
 	httpGet(paramsg) { resp ->
-        log.debug "Parsing plex.tv/devices.xml"
-        def devices = resp.data.Device
+        log.debug "Parsing Emby Devices"
+        def devices = resp.data.Items
         devices.each { thing ->        
         	// If not these things
-        	if(thing.@name.text()!="Emby Communicator" && !thing.@provides.text().contains("server")){      	
+        	if(thing.Name !="Emby Communicator"){      	
             	//Define name based on name unless blank then use device name
                 def whatToCallMe = "Unknown"
-                if(thing.@name.text() != "") 		{whatToCallMe = "${thing.@name.text()}-${thing.@product.text()}"}
-                else if(thing.@device.text()!="")	{whatToCallMe = "${thing.@device.text()}-${thing.@product.text()}"}  
-                xmlDevices << [ (thing.@clientIdentifier.text()): [name: "${whatToCallMe}", id: "${thing.@clientIdentifier.text()}"]]
+                if(thing.Name != "") 		{whatToCallMe = "${thing.Name}-${thing.AppName}"}
+                else if(thing.Name!="")	{whatToCallMe = "${thing.AppName}"}  
+                jsonDevices << [ (thing.Id): [name: "${whatToCallMe}", id: "${thing.Id}"]]
         	}
     	}   
     }
     //Get from status
-    state.embyClients << xmlDevices
+    state.embyClients << jsonDevices
 }
 
 /***********************************************************
@@ -295,8 +293,8 @@ def embyExeHandler() {
 	def mediaType = params.type
     def playerID = params.id
 	//log.debug "$playerID / $status / $userName / $playerName / $playerIP / $mediaType"
-    def plexEvent = [:] << [ id: "$playerID", type: "$mediaType", status: "$status", user: "$userName" ]
-    eventHandler(plexEvent)
+    def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", status: "$status", user: "$userName" ]
+    eventHandler(embyEvent)
 	return
 }
 
@@ -308,25 +306,25 @@ def embyWebHookHandler(){
     //log.debug newBody
 	
     def jsonSlurper = new JsonSlurper()
-	def plexJSON = jsonSlurper.parseText(newBody)
+	def embyJSON = jsonSlurper.parseText(newBody)
     
-    //log.debug "Metadata JSON: ${plexJSON.Metadata as String}"
-    //log.debug "Player JSON: ${plexJSON.Player as String}"
-    //log.debug "Account JSON: ${plexJSON.Account}"
-    log.debug "Event JSON: ${plexJSON.event}"
-	def playerID = plexJSON.Player.uuid
-    def userName = plexJSON.Account.title
-	def mediaType = plexJSON.Metadata.type
-    def status = plexJSON.event
-    def plexEvent = [:] << [ id: "$playerID", type: "$mediaType", status: "$status", user: "$userName" ]
+    //log.debug "Metadata JSON: ${embyJSON.Metadata as String}"
+    //log.debug "Player JSON: ${embyJSON.Player as String}"
+    //log.debug "Account JSON: ${embyJSON.Account}"
+    log.debug "Event JSON: ${embyJSON.event}"
+	def playerID = embyJSON.Player.uuid
+    def userName = embyJSON.Account.title
+	def mediaType = embyJSON.Metadata.type
+    def status = embyJSON.event
+    def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", status: "$status", user: "$userName" ]
 
-    eventHandler(plexEvent)
+    eventHandler(embyEvent)
 }
 
 def embyPoller(){
 	if(settings?.stPoller){
     	executeRequest("/status/sessions", "GET")
-    	log.warn "Plex Poller Update"
+    	log.warn "Emby Poller Update"
     	runOnce( new Date(now() + 10000L), embyPoller)
     }
 }
