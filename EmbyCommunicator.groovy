@@ -212,7 +212,7 @@ def executeRequest(Path, method) {
 	headers.put("HOST", "$settings.embyServerIP:${settings.embyServerPort}")
     headers.put("X-Emby-Token", state.authenticationToken)	
 	try {    
-		def actualAction = new hubitat.device.HubAction( 
+            def actualAction = new hubitat.device.HubAction( 
 		    method: method,
 		    path: Path,
 		    headers: headers)
@@ -302,7 +302,7 @@ def embyExeHandler() {
 def embyWebHookHandler(){
     def payloadStart = request.body.indexOf('application/json') + 78
     def newBody = request.body.substring(payloadStart)
-    //log.debug "Webhook Received with payload - $newBody"
+    log.debug "Webhook Received with payload - $newBody"
 	def jsonSlurper = new JsonSlurper()
    	def embyJSON = jsonSlurper.parseText(newBody)
     //log.debug "Event JSON: ${embyJSON.Event}"
@@ -334,7 +334,7 @@ def eventHandler(event) {
     def status = event.status as String
     // change command to right format
     switch(status) {
-		case ["media.play","media.resume","media.scrobble","onplay","play","playback.start","playback.resume"]:	status = "playing"; break;
+		case ["media.play","media.resume","media.scrobble","onplay","play","playback.start","playback.unpause"]:	status = "playing"; break;
         case ["media.pause","onpause","pause","playback.pause"]:									status = "paused"; 	break;
         case ["media.stop","onstop","stop","playback.stop"]:									status = "stopped"; break;
     }
