@@ -22,6 +22,7 @@ metadata {
     command "playbackType", ["string"]
 	attribute "playbackType", "string"
     attribute "playbackTitle", "string"
+    attribute "playbackSeries", "string"
 	}
 }
 
@@ -38,8 +39,13 @@ def setPlayStatus(type){
 }
 
 def playbackTitle(title) {
-sendEvent(name: "playbackTitle", value: title);
-log.debug "Title set to $title"
+    sendEvent(name: "playbackTitle", value: title);
+    log.debug "Title set to $title"
+}
+
+def playbackSeries(series) {
+    sendEvent(name: "playbackSeries", value: series);
+    log.debug "Series set to $series"
 }
 
 def play() {	        
