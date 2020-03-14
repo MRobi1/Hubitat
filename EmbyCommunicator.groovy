@@ -300,24 +300,19 @@ def embyExeHandler() {
 
 
 def embyWebHookHandler(){
-    
-    def payloadStart = request.body.indexOf('application/json') + 17    
+    def payloadStart = request.body.indexOf('application/json') + 78
     def newBody = request.body.substring(payloadStart)
-    //log.debug newBody
-	
-    def jsonSlurper = new JsonSlurper()
-	def embyJSON = jsonSlurper.parseText(newBody)
-    
-    //log.debug "Metadata JSON: ${embyJSON.Metadata as String}"
-    //log.debug "Player JSON: ${embyJSON.Player as String}"
-    //log.debug "Account JSON: ${embyJSON.Account}"
-    log.debug "Event JSON: ${embyJSON.event}"
-	def playerID = embyJSON.Player.uuid
-    def userName = embyJSON.Account.title
-	def mediaType = embyJSON.Metadata.type
-    def status = embyJSON.event
-    def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", status: "$status", user: "$userName" ]
-
+    //log.debug "Webhook Received with payload - $newBody"
+	def jsonSlurper = new JsonSlurper()
+   	def embyJSON = jsonSlurper.parseText(newBody)
+    log.debug "Event JSON: ${embyJSON.Event}"
+	def playerID = embyJSON.Session.DeviceId
+    def userName = embyJSON.User.Name
+	def mediaType = embyJSON.Item.Type
+    def status = embyJSON.Event
+    def mediaTitle = embyJSON.Item.Name
+    def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", title: "$mediaTitle", status: "$status", user: "$userName" ]
+    log.debug embyEvent
     eventHandler(embyEvent)
 }
 
@@ -338,14 +333,19 @@ def eventHandler(event) {
     def status = event.status as String
     // change command to right format
     switch(status) {
-		case ["media.play","media.resume","media.scrobble","onplay","play"]:	status = "playing"; break;
-        case ["media.pause","onpause","pause"]:									status = "paused"; 	break;
-        case ["media.stop","onstop","stop"]:									status = "stopped"; break;
+		case ["media.play","media.resume","media.scrobble","onplay","play","playback.start"]:	status = "playing"; break;
+        case ["media.pause","onpause","pause","playback.pause"]:									status = "paused"; 	break;
+        case ["media.stop","onstop","stop","playback.stop"]:									status = "stopped"; break;
     }
+    log.debug "Playback Status: $status"
+    log.debug "Event ID: $event.id"
+    log.debug "Child Devices: $getChildDevices"
     getChildDevices().each { pcd ->
+        log.debug "PCD: $pcd"
         if (event.id == pcd.deviceNetworkId){
         	pcd.setPlayStatus(status)
             pcd.playbackType(event.type)
+            pcd.playbackTitle(event.title)
         }
     }
 } 
