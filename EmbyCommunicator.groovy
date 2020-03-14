@@ -334,7 +334,7 @@ def eventHandler(event) {
     def status = event.status as String
     // change command to right format
     switch(status) {
-		case ["media.play","media.resume","media.scrobble","onplay","play","playback.start"]:	status = "playing"; break;
+		case ["media.play","media.resume","media.scrobble","onplay","play","playback.start","playback.resume"]:	status = "playing"; break;
         case ["media.pause","onpause","pause","playback.pause"]:									status = "paused"; 	break;
         case ["media.stop","onstop","stop","playback.stop"]:									status = "stopped"; break;
     }
