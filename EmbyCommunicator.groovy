@@ -302,7 +302,7 @@ def embyExeHandler() {
 def embyWebHookHandler(){
     def payloadStart = request.body.indexOf('application/json') + 78
     def newBody = request.body.substring(payloadStart)
-    log.debug "Webhook Received with payload - $newBody"
+    //log.debug "Webhook Received with payload - $newBody"
 	def jsonSlurper = new JsonSlurper()
    	def embyJSON = jsonSlurper.parseText(newBody)
     //log.debug "Event JSON: ${embyJSON.Event}"
