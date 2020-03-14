@@ -212,7 +212,7 @@ def executeRequest(Path, method) {
 	headers.put("HOST", "$settings.embyServerIP:${settings.embyServerPort}")
     headers.put("X-Emby-Token", state.authenticationToken)	
 	try {    
-		def actualAction = new physicalgraph.device.HubAction(
+		def actualAction = new hubitat.device.HubAction(
 		    method: method,
 		    path: Path,
 		    headers: headers)
