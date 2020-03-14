@@ -21,6 +21,7 @@ metadata {
 	capability "Music Player"
     command "playbackType", ["string"]
 	attribute "playbackType", "string"
+    attribute "playbackTitle", "string"
 	}
 }
 
@@ -34,6 +35,11 @@ def setPlayStatus(type){
     // Value needs to be playing, paused or stopped
     sendEvent(name: "status", value: "$type")
 	log.debug "Status set to $type"
+}
+
+def playbackTitle(title) {
+sendEvent(name: "playbackTitle", value: title);
+log.debug "Title set to $title"
 }
 
 def play() {	        
