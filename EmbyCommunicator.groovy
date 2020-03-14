@@ -311,7 +311,8 @@ def embyWebHookHandler(){
 	def mediaType = embyJSON.Item.Type
     def status = embyJSON.Event
     def mediaTitle = embyJSON.Item.Name
-    def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", title: "$mediaTitle", status: "$status", user: "$userName" ]
+    def seriesName = embyJSON.Item.SeriesName
+    def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", series: "$seriesName", title: "$mediaTitle", status: "$status", user: "$userName" ]
     log.debug embyEvent
     eventHandler(embyEvent)
 }
@@ -338,14 +339,12 @@ def eventHandler(event) {
         case ["media.stop","onstop","stop","playback.stop"]:									status = "stopped"; break;
     }
     log.debug "Playback Status: $status"
-    log.debug "Event ID: $event.id"
-    log.debug "Child Devices: $getChildDevices"
     getChildDevices().each { pcd ->
-        log.debug "PCD: $pcd"
         if (event.id == pcd.deviceNetworkId){
         	pcd.setPlayStatus(status)
             pcd.playbackType(event.type)
             pcd.playbackTitle(event.title)
+            pcd.playbackSeries(event.series)
         }
     }
 } 
