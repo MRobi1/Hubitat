@@ -338,7 +338,7 @@ def eventHandler(event) {
         case ["media.pause","onpause","pause","playback.pause"]:									status = "paused"; 	break;
         case ["media.stop","onstop","stop","playback.stop"]:									status = "stopped"; break;
     }
-    log.debug "Playback Status: $status"
+    //log.debug "Playback Status: $status"
     getChildDevices().each { pcd ->
         if (event.id == pcd.deviceNetworkId){
         	pcd.setPlayStatus(status)
