@@ -28,9 +28,9 @@ definition(
     importUrl: "https://raw.githubusercontent.com/MRobi1/Hubitat/master/EmbyCommunicator.groovy",
     description: "Allow Hubitat and Emby to Communicate",
     category: "My Apps",
-    iconUrl: "https://github.com/jebbett/Plex-Communicator/raw/master/icon.png",
-    iconX2Url: "https://github.com/jebbett/Plex-Communicator/raw/master/icon.png",
-    iconX3Url: "https://github.com/jebbett/Plex-Communicator/raw/master/icon.png",
+    iconUrl: "https://github.com/MRobi1/Hubitat/raw/master/icon.png",
+    iconX2Url: "https://github.com/MRobi1/Hubitat/raw/master/icon.png",
+    iconX3Url: "https://github.com/MRobi1/Hubitat/raw/master/icon.png",
     oauth: [displayName: "EmbyServer", displayLink: ""])
 
 
@@ -109,10 +109,14 @@ def noAuthPage() {
 
 def mainPage() {
 	return dynamicPage(name: "mainPage", uninstall: true, install: true) {
-		section("Main Menu") {
-        	href "authPage", title:"Emby Account Details", description: "Update Emby Account Details"
+        section(""){
+            paragraph "<h1><img src='https://github.com/MRobi1/Hubitat/raw/master/icon.png' width='64' height='64' />&nbsp;<strong><span style='color: #000000;'>emby</span></strong></h1>"
+			paragraph "<b>Emby Communicator creates virtual devices in Hubitat to allow for advanced automations based on Emby play states</b>"
+        }
+        section("Main Menu") {
+        	href "authPage", title:"Emby Account Details", description: "Enter your IP, Port and API Key"
 			href "clientPage", title:"Select Your Devices", description: "Select the devices you want to monitor" 
-            href(name: "WebhooksSettings", title: "Connection Methods", required: false, page: "WebhooksSettings", description: "Select your method for connecting to Emby")
+            href(name: "WebhooksSettings", title: "Webhook Settings", required: false, page: "WebhooksSettings", description: "Retrieve your webhook address")
     	}
         section("If you want to control lighting scenes then the 'MediaScene' SmartApp is ideal for this purpose"){}
         section("This app is developed by MRobi, additional credit goes to jebbett (PlexCommunicator), Keo (Emby to Vudu), to Christian H (Plex2SmartThings), iBeech (Plex Home Theatre) & Ph4r (Improved Plex control)."){}
@@ -120,12 +124,14 @@ def mainPage() {
 }
 
 def WebhooksSettings() {
-    dynamicPage(name: "WebhooksSettings", title: "Webhook Address", install: false, uninstall: false) {      
-         section("Webhooks - Emby service required") {
-        	paragraph("Note: You will need an active Emby Subscription to use this")
+    dynamicPage(name: "WebhooksSettings", install: false, uninstall: false) {      
+        section(""){
+            paragraph "<h1><img src='https://github.com/MRobi1/Hubitat/raw/master/icon.png' width='64' height='64' />&nbsp;<strong><span style='color: #000000;'>emby</span></strong></h1>"
+			paragraph "<b>Click the link below to retrieve your webhook address. This address must be copied into your webhooks settings on your Emby server.</b>"
+            paragraph "Note: Your Emby Server will need to be on version 4.3.1.0 or above OR to have the 3rd party webhooks plugin installed"
         	href url: "${getLocalApiServerUrl()}/${app.id}/ewhset?access_token=${state.accessToken}", style:"embedded", required:false, title:"Emby Webhooks Settings", description: ""  		
         }
-		section("NOTE: The settings above have also been sent to Live Logging, for easy access from a computer."){}
+		section("NOTE: The address in the link above has also been sent to Live Logging, for easy access from a computer."){}
         	log.debug(
         		"\n ## URL FOR USE IN EMBY WEBHOOKS ##\n${getFullLocalApiServerUrl()}/ewh?access_token=${state.accessToken}"+
         		"<!ENTITY accessToken '${state.accessToken}'>\n"+
@@ -146,8 +152,12 @@ def ewhset() {
 ************************************************************/
 
 def authPage() {
-    return dynamicPage(name: "authPage", install: true) {
+    return dynamicPage(name: "authPage", install: false) {
         def hub = location.hubs[0]
+       section(""){
+            paragraph "<h1><img src='https://github.com/MRobi1/Hubitat/raw/master/icon.png' width='64' height='64' />&nbsp;<strong><span style='color: #000000;'>emby</span></strong></h1>"
+			paragraph "<b>Please enter the IP address for your Emby server, port (default 8096) and your API Key which can be created in the API Keys section of your Emby server.</b>"
+        }
         section("Emby Server Details") {
             input "embyServerIP", "text", "title": "Server IP", multiple: false, required: true
 			input "embyServerPort", "text", "title": "Server Port", multiple: false, required: true, defaultValue: "8096"
@@ -167,9 +177,10 @@ def authPage2() {
 def clientPage() {
     getClients()
     def devs = getClientList()
-	return dynamicPage(name: "clientPage", title: "SELECT CLIENTS", uninstall: false, install: true) {
-        section("If your device does not appear in the list"){}
-        section("Devices currently in use by Emby will have a [►] icon next to them, this can be helpful when multiple devices share the same name, if a device is playing but not shown then press Save above and come back to this screen"){
+	return dynamicPage(name: "clientPage", uninstall: false, install: false) {
+        section(""){
+            paragraph "<h1><img src='https://github.com/MRobi1/Hubitat/raw/master/icon.png' width='64' height='64' />&nbsp;<strong><span style='color: #000000;'>emby</span></strong></h1>"
+			paragraph "<b>Please select all devices you would like to monitor. A virtual device with the device name will be created in Hubitat.</b>"
         	input "devices", "enum", title: "Select Your Devices", options: devs, multiple: true, required: false, submitOnChange: true
   		}
         if(!devices){
