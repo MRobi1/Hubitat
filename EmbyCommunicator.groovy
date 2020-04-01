@@ -78,7 +78,6 @@ preferences {
 }
 
 mappings {
-//  path("/statechanged/:command") 	{ action: [GET: "embyExeHandler"] }
   path("/ewhset") 					{ action: [GET: "ewhset"]   }
   path("/ewh") 						{ action: [POST: "embyWebHookHandler"] }
 }
@@ -205,8 +204,6 @@ def getClients(){
     // set lists
 	def isMap = state.embyClients instanceof Map
     if(!isMap){state.embyClients = [:]}
-//    def isMap2 = state.playingClients instanceof Map
-//    if(!isMap2){state.playingClients = [:]}
     // Get devices.json clients
     getClientsJSON()
 	executeRequest("http://${settings.embyServerIP}:${settings.embyServerPort}/emby/Devices?&api_key=${settings.embyApiKey}", "GET")
@@ -225,46 +222,9 @@ def executeRequest(Path, method) {
 	}
 	catch (Exception e) {log.debug "Hit Exception $e on $hubAction"}
 }
-/*
-def response(evt) {	 
-	// Reponse to hub from now playing request    
-    def msg = parseLanMessage(evt.description);
-    def stillPlaying = []
-    if(msg && msg.body && msg.body.startsWith("<?json")){
-    	log.debug "Parsing status/sessions"
-    	def whatToCallMe = ""
-    	def playingDevices = [:]
-    	def mediaContainer = new XmlSlurper().parseText(msg.body)
-		mediaContainer.Video.each { thing ->
-            if(thing.Player.@title.text() != "") 		{whatToCallMe = "${thing.Player.@title.text()}-${thing.Player.@product.text()}"}
-        	else if(thing.Player.@device.text()!="")	{whatToCallMe = "${thing.Player.@device.text()}-${thing.Player.@product.text()}"}
-            playingDevices << [ (thing.Player.@machineIdentifier.text()): [name: "${whatToCallMe}", id: "${thing.Player.@machineIdentifier.text()}"]]
-            
-            if(settings?.hePoller){
-    			def embyEvent = [:] << [ id: "${thing.Player.@machineIdentifier.text()}", type: "${thing.@type.text()}", status: "${thing.Player.@state.text()}", user: "${thing.User.@title.text()}" ]
-                stillPlaying << "${thing.Player.@machineIdentifier.text()}"
-        		eventHandler(embyEvent)
-            }
-        }
-        if(settings?.hePoller){
-        	//stop anything that's no long visible in the playing list but was playing before
-        	state.playingClients.each { id, data ->
-            	if(!stillPlaying.contains("$id")){
-                	def embyEvent2 = [:] << [ id: "$playerID", type: "--", status: "stopped", user: "--" ]
-                    eventHandler(embyEvent2)
-                }
-            }
-        }
-        state.embyClients << playingDevices
-        state.playingClients = playingDevices
-    }
-}
-*/
 
 def getClientsJSON() {
-    //getAuthenticationToken()
     def jsonDevices = [:]
-    // Get from Devices List
     def paramsg = [
 		uri: "http://${settings.embyServerIP}:${settings.embyServerPort}/emby/Devices?&api_key=${settings.embyApiKey}",
         contentType: 'application/json',
@@ -290,20 +250,6 @@ def getClientsJSON() {
 /***********************************************************
 ** INPUT HANDLERS
 ************************************************************/
-/*
-def embyExeHandler() {
-	def status = params.command
-	def userName = params.user
-	//def playerName = params.player
-    //def playerIP = params.ipadd
-	def mediaType = params.type
-    def playerID = params.id
-	//log.debug "$playerID / $status / $userName / $playerName / $playerIP / $mediaType"
-    def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", status: "$status", user: "$userName" ]
-    eventHandler(embyEvent)
-	return
-}
-*/
 
 def embyWebHookHandler(){
     def payloadStart = request.body.indexOf('application/json') + 78
@@ -322,15 +268,6 @@ def embyWebHookHandler(){
     //log.debug embyEvent
     eventHandler(embyEvent)
 }
-/*
-def embyPoller(){
-	if(settings?.hePoller){
-    	executeRequest("/status/sessions", "GET")
-    	log.warn "Emby Poller Update"
-    	runOnce( new Date(now() + 10000L), embyPoller)
-    }
-}
-*/
 
 /***********************************************************
 ** DTH OUTPUT
@@ -342,12 +279,13 @@ def eventHandler(event) {
     switch(status) {
 		case ["media.play","media.resume","media.scrobble","onplay","play","playback.start","playback.unpause"]:	status = "playing"; break;
         case ["media.pause","onpause","pause","playback.pause"]:									status = "paused"; 	break;
-        case ["media.stop","onstop","stop","playback.stop"]:									status = "stopped"; break;
+        case ["media.stop","onstop","stop","playback.stop","playback.scrobble"]:									status = "stopped"; break;
     }
     //log.debug "Playback Status: $status"
     getChildDevices().each { pcd ->
         if (event.id == pcd.deviceNetworkId){
         	pcd.setPlayStatus(status)
+            pcd.playbackUser(event.user)
             pcd.playbackType(event.type)
             pcd.playbackTitle(event.title)
             pcd.playbackSeries(event.series)
