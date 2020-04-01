@@ -20,7 +20,8 @@ metadata {
 	definition (name: "Emby Communicator Device", namespace: "MRobi", author: "MRobi", importUrl: "https://raw.githubusercontent.com/MRobi1/Hubitat/master/EmbyCommunicatorDevice.groovy") {
 	capability "Music Player"
     command "playbackType", ["string"]
-	attribute "playbackType", "string"
+	attribute "playbackUser", "string"
+    attribute "playbackType", "string"
     attribute "playbackTitle", "string"
     attribute "playbackSeries", "string"
 	}
@@ -36,6 +37,11 @@ def setPlayStatus(type){
     // Value needs to be playing, paused or stopped
     sendEvent(name: "status", value: "$type")
 	log.debug "Status set to $type"
+}
+
+def playbackUser(title) {
+    sendEvent(name: "playbackUser", value: title);
+    log.debug "PLayback user is $title"
 }
 
 def playbackTitle(title) {
