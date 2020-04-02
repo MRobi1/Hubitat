@@ -28,8 +28,11 @@ definition(
     importUrl: "https://raw.githubusercontent.com/MRobi1/Hubitat/master/EmbyCommunicator.groovy",
     description: "Allow Hubitat and Emby to Communicate",
     category: "My Apps",
-    oauth: [displayName: "EmbyServer", displayLink: ""])
-
+    iconUrl: "https://github.com/MRobi1/Hubitat/raw/master/icon.png",
+    iconX2Url: "https://github.com/MRobi1/Hubitat/raw/master/icon.png",
+    iconX3Url: "https://github.com/MRobi1/Hubitat/raw/master/icon.png",
+    oauth: [displayName: "EmbyServer", displayLink: ""]
+)
 
 def installed() {
     initialize()
