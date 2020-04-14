@@ -18,7 +18,7 @@ def getDriverVersion() {[platform: "Universal", major: 2, minor: 0, build: 0]}
 
 metadata
 {
-	definition(name: "HubConnect Daikin", namespace: "shackrat", author: "Steve White & Mike Robichaud", importUrl: https://raw.githubusercontent.com/MRobi1/Hubitat/master/HubConnect-Custom-Drivers/daikin_thermostat.groovy)
+	definition(name: "HubConnect Daikin", namespace: "shackrat", author: "Steve White & Mike Robichaud", importUrl: "https://raw.githubusercontent.com/MRobi1/Hubitat/master/HubConnect-Custom-Drivers/daikin_thermostat.groovy")
 	{
 	capability "Thermostat"
         capability "Temperature Measurement"
