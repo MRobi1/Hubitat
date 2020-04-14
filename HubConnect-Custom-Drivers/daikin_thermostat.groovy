@@ -38,7 +38,10 @@ metadata
         attribute "connection", "string"
 	attribute "version", "string"
 
-        command "fan"
+        command "auto"
+	command "heat"
+	command "cool"
+	command "fan"
         command "dry"
         command "tempUp"
         command "tempDown"
@@ -129,7 +132,15 @@ def setFanRate(fanRate) {
 def setTemperature(temp) {
 	parent.sendDeviceEvent(device.deviceNetworkId, "setTemperature", [temp])
 }
-
+def heat() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "heat")
+}
+def cool() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "cool")
+}
+def auto() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "auto")
+}
 		   
 /*
 	sync
