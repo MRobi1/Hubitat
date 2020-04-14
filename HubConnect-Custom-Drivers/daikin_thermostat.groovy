@@ -18,7 +18,7 @@ def getDriverVersion() {[platform: "Universal", major: 2, minor: 0, build: 0]}
 
 metadata
 {
-	definition(name: "HubConnect Daikin", namespace: "shackrat", author: "Steve White & Mike Robichaud")
+	definition(name: "HubConnect Daikin", namespace: "shackrat", author: "Steve White & Mike Robichaud", importUrl: https://raw.githubusercontent.com/MRobi1/Hubitat/master/HubConnect-Custom-Drivers/daikin_thermostat.groovy)
 	{
 	capability "Thermostat"
         capability "Temperature Measurement"
@@ -91,7 +91,6 @@ def uninstalled()
 	parent?.sendDeviceEvent(device.deviceNetworkId, "uninstalled")
 }
 
-
 /*
 	refresh
 */
@@ -100,8 +99,38 @@ def refresh()
 	// The server will update status
 	parent.sendDeviceEvent(device.deviceNetworkId, "refresh")
 }
+def fan() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "fan")
+}
+def dry() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "dry")
+}
+def tempUp() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "tempUp")
+}		   
+def tempDown() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "tempDown")
+}
+def fanRateAuto() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "fanRateAuto")
+}
+def fanRateSilence() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "fanRateSilence")
+}
+def fanDirectionVertical() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "fanDirectionVertical")
+}
+def fanDirectionHorizontal() {
+	parent.sendDeviceEvent(device.deviceNetworkId, "fanDirectionHorizontal")
+}
+def setFanRate(fanRate) {
+	parent.sendDeviceEvent(device.deviceNetworkId, "setFanRate", [fanRate])
+}
+def setTemperature(temp) {
+	parent.sendDeviceEvent(device.deviceNetworkId, "setTemperature", [temp])
+}
 
-
+		   
 /*
 	sync
 */
