@@ -258,12 +258,12 @@ def embyWebHookHandler(){
 	def jsonSlurper = new JsonSlurper()
    	def embyJSON = jsonSlurper.parseText(newBody)
     //log.debug "Event JSON: ${embyJSON.Event}"
-	def playerID = embyJSON.Session.DeviceId
-    def userName = embyJSON.User.Name
-	def mediaType = embyJSON.Item.Type
+	def playerID = embyJSON.Session?.DeviceId
+    def userName = embyJSON.User?.Name
+	def mediaType = embyJSON.Item?.Type
     def status = embyJSON.Event
-    def mediaTitle = embyJSON.Item.Name
-    def seriesName = embyJSON.Item.SeriesName
+    def mediaTitle = embyJSON.Item?.Name
+    def seriesName = embyJSON.Item?.SeriesName
     def embyEvent = [:] << [ id: "$playerID", type: "$mediaType", series: "$seriesName", title: "$mediaTitle", status: "$status", user: "$userName" ]
     //log.debug embyEvent
     eventHandler(embyEvent)
