@@ -239,7 +239,7 @@ def getClientsJSON() {
                 def whatToCallMe = "Unknown"
                 if(thing.Name != "") 		{whatToCallMe = "${thing.Name}-${thing.AppName}"}
                 else if(thing.Name!="")	{whatToCallMe = "${thing.AppName}"}  
-                jsonDevices << [ (thing.Id): [name: "${whatToCallMe}", id: "${thing.Id}"]]
+                jsonDevices << [ (thing.ReportedDeviceId): [name: "${whatToCallMe}", id: "${thing.ReportedDeviceId}"]]
         	}
     	}   
     }
